@@ -1,0 +1,282 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email in ["jumbabiodyckson@gmail.com", "maujkamau@gmail.com", "admin2@example.com", "admin@example.com"] ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin'));
+    }
+    
+    function isContributor() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contributor';
+    }
+
+    function isStaff() {
+      return isAdmin() || isContributor();
+    }
+    
+    function isVerified() {
+      return isAuthenticated() && 
+        (request.auth.token.email_verified == true || request.auth.token.phone_number != null);
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.size() <= 256 && email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    // ===============================================================
+    // Data Validation
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.role in ['admin', 'contributor', 'viewer', 'user'];
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['authorUid', 'type', 'title', 'status', 'createdAt']) &&
+             data.authorUid is string &&
+             data.type in ['video', 'book', 'picture', 'notification', 'sermon', 'devotion', 'course', 'podcast'] &&
+             data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    function isValidComment(data) {
+      return data.keys().hasAll(['postId', 'authorUid', 'text', 'createdAt']) &&
+             data.postId is string &&
+             data.authorUid is string &&
+             data.text is string && data.text.size() < 1000;
+    }
+
+    function isValidTeamMember(data) {
+      return data.keys().hasAll(['name', 'role', 'bio']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.role is string &&
+             data.bio is string;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'subject', 'message', 'createdAt']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 &&
+             data.email is string && isValidEmail(data.email) &&
+             data.subject is string && data.subject.size() > 0 &&
+             data.message is string && data.message.size() > 0 && data.message.size() < 5000;
+    }
+
+    function isValidAISettings(data) {
+      return data.isAIEnabled is bool &&
+             data.isAutoUpdateEnabled is bool &&
+             data.aiHealth in ['OPTIMAL', 'DEGRADED', 'OFFLINE'] &&
+             data.persona in ['SERIOUS', 'PROFESSIONAL', 'BALANCED'];
+    }
+
+    function isValidContactInfo(data) {
+      return (data.communityNumber is string || !('communityNumber' in data)) &&
+             (data.officialEmail is string || !('officialEmail' in data)) &&
+             (data.address is string || !('address' in data)) &&
+             (data.whatsappGroup is string || !('whatsappGroup' in data));
+    }
+
+    function isValidEvent(data) {
+      return data.keys().hasAll(['title', 'date', 'type', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 &&
+             data.date is string &&
+             data.type in ['service', 'conference', 'outreach', 'other'];
+    }
+
+    function isValidDonation(data) {
+      return data.keys().hasAll(['userId', 'amount', 'type', 'status', 'createdAt']) &&
+             data.userId is string &&
+             data.amount is number && data.amount > 0 &&
+             data.type in ['tithe', 'offering', 'support', 'other'];
+    }
+
+    function isValidSermonNote(data) {
+      return data.keys().hasAll(['content', 'createdAt', 'title', 'userId']) &&
+             data.content is string && data.content.size() > 0 &&
+             data.title is string && data.title.size() > 0 &&
+             data.userId is string &&
+             (data.get('postId', '') is string) &&
+             (data.get('postTitle', '') is string) &&
+             (data.get('summary', '') is string) &&
+             (data.get('isAIFormatted', false) is bool);
+    }
+
+    function isValidAIReport(data) {
+      return data.keys().hasAll(['type', 'createdAt']) &&
+             data.type is string &&
+             (data.type == 'FINANCIAL' ? (
+               data.keys().hasAll(['totalRevenue', 'orderCount', 'analysis', 'recommendations', 'status']) &&
+               data.totalRevenue is number &&
+               data.orderCount is number &&
+               data.analysis is string &&
+               data.recommendations is list &&
+               data.status in ['OPTIMAL', 'ATTENTION_REQUIRED', 'CRITICAL']
+             ) : (data.type == 'STABILITY' ? (
+               data.keys().hasAll(['content']) &&
+               data.content is string
+             ) : true));
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['title', 'content', 'type', 'createdAt']) &&
+             data.title is string &&
+             data.content is string &&
+             data.type is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    // Global safety net - Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /test_connection/{docId} {
+      allow read: if docId == 'ping';
+    }
+    
+    match /global_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && isValidUser(request.resource.data) && (request.resource.data.role == 'user' || isAdmin());
+      allow update: if (isOwner(uid) && request.resource.data.role == resource.data.role) || isAdmin();
+
+      match /bookmarks/{postId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /likes/{postId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /sermon_notes/{noteId} {
+        allow read, write: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidSermonNote(request.resource.data);
+      }
+    }
+
+    match /posts/{postId} {
+      allow read: if true; // Allow reading all posts, frontend handles visibility filtering for UX
+      allow create: if isAuthenticated() && isValidPost(request.resource.data);
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isVerified() && isValidComment(request.resource.data);
+        allow update: if isAdmin() || isOwner(resource.data.authorUid);
+        allow delete: if isAdmin() || isOwner(resource.data.authorUid);
+      }
+    }
+
+    match /{path=**}/comments/{commentId} {
+      allow read: if isAdmin();
+    }
+
+    match /sites/{siteId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /admin_advice/{adviceId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userUid == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /marketing_logs/{logId} {
+      allow read, write: if isStaff();
+    }
+
+    match /team/{memberId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /contact_messages/{messageId} {
+      allow read: if isAdmin();
+      allow create: if isValidContactMessage(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isStaff() && isValidEvent(request.resource.data);
+      allow update, delete: if isStaff();
+    }
+
+    match /ai_reports/{reportId} {
+      allow read, write: if isAdmin() || (isContributor() && request.resource.data.type == 'STABILITY');
+      allow create: if (isAdmin() || (isContributor() && request.resource.data.type == 'STABILITY')) && isValidAIReport(request.resource.data);
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if true;
+      allow write: if isStaff();
+      allow create: if isStaff() && isValidNotification(request.resource.data);
+    }
+
+    match /donations/{donationId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidDonation(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+    match /sermon_notes/{noteId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /moderation_feedback/{feedbackId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isAdmin();
+    }
+
+    match /strategic_insights/{insightId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isAdmin();
+    }
+  }
+}

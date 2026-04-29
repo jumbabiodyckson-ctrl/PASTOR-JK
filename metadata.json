@@ -1,0 +1,5 @@
+{
+  "name": "Pastor JK: The Visionary Identity",
+  "description": "The official global command center for Pastor Jk's visionary mentorship, prophetic school, and strategic leadership hub.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}

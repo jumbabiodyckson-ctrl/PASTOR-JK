@@ -1,0 +1,309 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and authentication details.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique user ID from Firebase Auth." },
+        "email": { "type": "string", "format": "email", "description": "User's email address." },
+        "phoneNumber": { "type": "string", "description": "User's phone number." },
+        "displayName": { "type": "string", "description": "User's display name." },
+        "photoURL": { "type": "string", "description": "User's profile picture URL." },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User's role in the system." },
+        "isEmailVerified": { "type": "boolean", "description": "Whether the email is verified." },
+        "isPhoneVerified": { "type": "boolean", "description": "Whether the phone number is verified." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user was created." }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A content post (video, book, picture, or notification).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique post ID." },
+        "authorUid": { "type": "string", "description": "UID of the post author." },
+        "authorName": { "type": "string", "description": "Name of the post author." },
+        "type": { "type": "string", "enum": ["video", "book", "picture", "notification"], "description": "Type of content." },
+        "title": { "type": "string", "description": "Title of the post." },
+        "content": { "type": "string", "description": "Content or description of the post." },
+        "mediaUrl": { "type": "string", "description": "URL to the media file (video, picture, or book PDF)." },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "Moderation status." },
+        "aiModerationNote": { "type": "string", "description": "Note from the AI moderator." },
+        "moderationSuggestions": { 
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "content": { "type": "string" },
+            "note": { "type": "string" }
+          },
+          "description": "Specific suggestions from AI moderation."
+        },
+        "moderationHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "note": { "type": "string" },
+              "status": { "type": "string" },
+              "createdAt": { "type": "string", "format": "date-time" },
+              "suggestions": { "type": "string" }
+            }
+          },
+          "description": "History of AI moderation events."
+        },
+        "price": { "type": "number", "description": "Price for the content (if applicable)." },
+        "isFullBook": { "type": "boolean", "description": "Whether this is a full book or a chapter." },
+        "chapterNumber": { "type": "integer", "description": "Chapter number if applicable." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the post was created." }
+      },
+      "required": ["id", "authorUid", "type", "title", "status", "createdAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on a post.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique comment ID." },
+        "postId": { "type": "string", "description": "ID of the post being commented on." },
+        "authorUid": { "type": "string", "description": "UID of the comment author." },
+        "authorName": { "type": "string", "description": "Name of the comment author." },
+        "text": { "type": "string", "description": "The comment text." },
+        "aiReply": { "type": "string", "description": "AI-generated reply to the comment." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the comment was created." }
+      },
+      "required": ["id", "postId", "authorUid", "text", "createdAt"]
+    },
+    "Site": {
+      "title": "Site",
+      "description": "One of the five embedded websites.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique site ID." },
+        "name": { "type": "string", "description": "Name of the site." },
+        "url": { "type": "string", "description": "URL of the site." },
+        "description": { "type": "string", "description": "Description of the site." },
+        "icon": { "type": "string", "description": "Icon name from lucide-react." }
+      },
+      "required": ["id", "name", "url"]
+    },
+    "AdminAdvice": {
+      "title": "AdminAdvice",
+      "description": "AI-generated advice for admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique advice ID." },
+        "topic": { "type": "string", "description": "Topic of the advice (e.g., stability, engagement)." },
+        "advice": { "type": "string", "description": "The advice text." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the advice was generated." }
+      },
+      "required": ["id", "topic", "advice", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A financial transaction for content purchase.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique transaction ID." },
+        "userUid": { "type": "string", "description": "UID of the user making the purchase." },
+        "userName": { "type": "string", "description": "Name of the user." },
+        "postId": { "type": "string", "description": "ID of the post being purchased." },
+        "postTitle": { "type": "string", "description": "Title of the post." },
+        "amount": { "type": "number", "description": "Transaction amount." },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"], "description": "Status of the transaction." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the transaction occurred." }
+      },
+      "required": ["id", "userUid", "postId", "amount", "status", "createdAt"]
+    },
+    "TeamMember": {
+      "title": "TeamMember",
+      "description": "A member of the leadership team.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique member ID." },
+        "name": { "type": "string", "description": "Name of the team member." },
+        "role": { "type": "string", "description": "Role of the team member." },
+        "bio": { "type": "string", "description": "Short biography." },
+        "photoURL": { "type": "string", "description": "URL to the member's photo." }
+      },
+      "required": ["id", "name", "role", "bio"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "A bookmarked post for a user.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string", "description": "ID of the bookmarked post." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the bookmark was created." }
+      },
+      "required": ["postId", "createdAt"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "A message sent via the Contact Us form.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique message ID." },
+        "name": { "type": "string", "description": "Name of the sender." },
+        "email": { "type": "string", "format": "email", "description": "Email of the sender." },
+        "subject": { "type": "string", "description": "Subject of the message." },
+        "message": { "type": "string", "description": "The message body." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the message was sent." }
+      },
+      "required": ["id", "name", "email", "subject", "message", "createdAt"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User feedback or messages to the executive team.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique feedback ID." },
+        "userId": { "type": "string", "description": "UID of the user." },
+        "userEmail": { "type": "string", "description": "Email of the user." },
+        "message": { "type": "string", "description": "The feedback message." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the feedback was sent." }
+      },
+      "required": ["id", "message", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A record of a book purchase.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique order ID." },
+        "postId": { "type": "string", "description": "ID of the book purchased." },
+        "postTitle": { "type": "string", "description": "Title of the book." },
+        "amount": { "type": "number", "description": "Amount paid." },
+        "userId": { "type": "string", "description": "UID of the buyer." },
+        "userEmail": { "type": "string", "description": "Email of the buyer." },
+        "method": { "type": "string", "enum": ["mpesa", "card", "flutterwave", "paypal", "bank"], "description": "Payment method used." },
+        "status": { "type": "string", "description": "Order status (e.g., completed)." },
+        "receiptUrl": { "type": "string", "description": "URL to the uploaded payment receipt (for bank transfers)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the order was placed." }
+      },
+      "required": ["id", "postId", "amount", "userId", "status", "createdAt"]
+    },
+    "MarketingLog": {
+      "title": "MarketingLog",
+      "description": "A record of AI-generated marketing activity.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique log ID." },
+        "postId": { "type": "string", "description": "ID of the post marketed." },
+        "postTitle": { "type": "string", "description": "Title of the post." },
+        "platform": { "type": "string", "description": "Social media platform." },
+        "content": { "type": "string", "description": "The marketing content." },
+        "status": { "type": "string", "description": "Posting status." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the marketing occurred." }
+      },
+      "required": ["id", "postId", "platform", "content", "createdAt"]
+    },
+    "AISettings": {
+      "title": "AISettings",
+      "description": "Global configuration for the AI assistant.",
+      "type": "object",
+      "properties": {
+        "isAIEnabled": { "type": "boolean", "description": "Whether the AI is globally enabled." },
+        "isAutoUpdateEnabled": { "type": "boolean", "description": "Whether auto-update protocol is active." },
+        "isAutoMarketingEnabled": { "type": "boolean", "description": "Whether auto-marketing protocol is active." },
+        "aiHealth": { "type": "string", "enum": ["OPTIMAL", "DEGRADED", "OFFLINE"], "description": "Current system health status." },
+        "persona": { "type": "string", "enum": ["SERIOUS", "PROFESSIONAL", "BALANCED"], "description": "The assistant's interaction persona." },
+        "lastHealAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last self-heal event." }
+      },
+      "required": ["isAIEnabled", "isAutoUpdateEnabled", "isAutoMarketingEnabled", "aiHealth", "persona"]
+    },
+    "ContactInfo": {
+      "title": "ContactInfo",
+      "description": "Global contact information and community details.",
+      "type": "object",
+      "properties": {
+        "communityNumber": { "type": "string", "description": "Official community phone/WhatsApp number." },
+        "officialEmail": { "type": "string", "description": "Official contact email." },
+        "address": { "type": "string", "description": "Physical address or location." },
+        "whatsappGroup": { "type": "string", "description": "Link to the official WhatsApp group." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the info was last updated." }
+      }
+    },
+    "Event": {
+      "title": "Event",
+      "description": "An upcoming service or community event.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique event ID." },
+        "title": { "type": "string", "description": "Title of the event." },
+        "description": { "type": "string", "description": "Description of the event." },
+        "date": { "type": "string", "format": "date-time", "description": "Date and time of the event." },
+        "location": { "type": "string", "description": "Location or link for the event." },
+        "type": { "type": "string", "enum": ["service", "conference", "outreach", "other"], "description": "Type of event." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the event was created." }
+      },
+      "required": ["id", "title", "date", "type", "createdAt"]
+    },
+    "Donation": {
+      "title": "Donation",
+      "description": "A record of a general donation, tithe, or offering.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique donation ID." },
+        "userId": { "type": "string", "description": "UID of the donor." },
+        "userEmail": { "type": "string", "description": "Email of the donor." },
+        "amount": { "type": "number", "description": "Donation amount." },
+        "type": { "type": "string", "enum": ["tithe", "offering", "support", "other"], "description": "Type of donation." },
+        "status": { "type": "string", "description": "Payment status." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the donation was made." }
+      },
+      "required": ["id", "userId", "amount", "type", "status", "createdAt"]
+    },
+    "SermonNote": {
+      "title": "SermonNote",
+      "description": "A personal note taken by a user during a sermon or study session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique note ID." },
+        "userId": { "type": "string", "description": "UID of the user." },
+        "postId": { "type": "string", "description": "ID of the post (video/sermon) this note is linked to." },
+        "postTitle": { "type": "string", "description": "Title of the linked post for context." },
+        "title": { "type": "string", "description": "Title of the note." },
+        "content": { "type": "string", "description": "The note content." },
+        "summary": { "type": "string", "description": "AI-generated summary of the note." },
+        "isAIFormatted": { "type": "boolean", "description": "Whether the note was refined using AI formatting." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the note was created." }
+      },
+      "required": ["id", "userId", "title", "content", "createdAt"]
+    },
+    "StrategicInsight": {
+      "title": "StrategicInsight",
+      "description": "AI-generated strategic advice and proofreading summary for book content.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique insight ID." },
+        "sourceTitle": { "type": "string", "description": "Title of the proofread source." },
+        "correctionsSummary": { "type": "string", "description": "Summary of linguistic/theological corrections." },
+        "strategicAdvice": { "type": "string", "description": "Visionary strategic advice for future content." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the insight was generated." }
+      },
+      "required": ["id", "sourceTitle", "correctionsSummary", "strategicAdvice", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/global_settings/ai_config": { "schema": "AISettings", "description": "AI core configuration." },
+    "/global_settings/contact_info": { "schema": "ContactInfo", "description": "Global contact details." },
+    "/users/{uid}": { "schema": "User", "description": "User profiles." },
+    "/users/{uid}/bookmarks/{postId}": { "schema": "Bookmark", "description": "User's bookmarked posts." },
+    "/users/{uid}/sermon_notes/{noteId}": { "schema": "SermonNote", "description": "User's personal sermon notes." },
+    "/posts/{postId}": { "schema": "Post", "description": "Content posts." },
+    "/posts/{postId}/comments/{commentId}": { "schema": "Comment", "description": "Comments on posts." },
+    "/sites/{siteId}": { "schema": "Site", "description": "Embedded websites." },
+    "/admin_advice/{adviceId}": { "schema": "AdminAdvice", "description": "AI advice for admins." },
+    "/transactions/{transactionId}": { "schema": "Transaction", "description": "Financial transactions." },
+    "/team/{memberId}": { "schema": "TeamMember", "description": "Leadership team members." },
+    "/contact_messages/{messageId}": { "schema": "ContactMessage", "description": "Messages from the Contact Us form." },
+    "/feedback/{feedbackId}": { "schema": "Feedback", "description": "User feedback messages." },
+    "/orders/{orderId}": { "schema": "Order", "description": "Book purchase records." },
+    "/marketing_logs/{logId}": { "schema": "MarketingLog", "description": "AI marketing activity logs." },
+    "/events/{eventId}": { "schema": "Event", "description": "Upcoming events." },
+    "/donations/{donationId}": { "schema": "Donation", "description": "Donation records." },
+    "/strategic_insights/{insightId}": { "schema": "StrategicInsight", "description": "AI-generated strategic insights for content excellence." }
+  }
+}
