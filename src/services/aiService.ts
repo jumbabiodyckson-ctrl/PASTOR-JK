@@ -155,7 +155,7 @@ Please provide a professional and authoritative reply as the website's senior AI
 export async function getAdminAdvice(systemStats: any) {
   try {
     const response = await ai.models.generateContent({
-      model: PRO_MODEL,
+      model: MODEL_NAME,
       contents: `Analyze the following system stats and provide strategic advice for the admins. 
 The website is a high-performance content hub.
 Stats: ${JSON.stringify(systemStats)}

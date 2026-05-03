@@ -10260,6 +10260,11 @@ export default function App() {
     setIsNoteModalOpen(true);
   };
   const [posts, setPosts] = useState<Post[]>([]);
+  const postsRef = useRef<Post[]>([]);
+  
+  useEffect(() => {
+    postsRef.current = posts;
+  }, [posts]);
   const [sites, setSites] = useState<Site[]>([]);
   const [advice, setAdvice] = useState<AdminAdvice[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -10757,9 +10762,10 @@ export default function App() {
   useEffect(() => {
     if (profile?.role === 'admin' && aiSettings.isAIEnabled) {
       const generateAdvice = async () => {
+        const currentPosts = postsRef.current;
         const stats = {
-          totalPosts: posts.length,
-          pendingPosts: posts.filter(p => p.status === 'pending').length,
+          totalPosts: currentPosts.length,
+          pendingPosts: currentPosts.filter(p => p.status === 'pending').length,
           activeUsers: 1, // Mock
           systemLoad: 'low'
         };
@@ -10774,7 +10780,6 @@ export default function App() {
           });
         } catch (error) {
           console.error("Failed to generate AI advice:", error);
-          // If it fails with a 500/RPC error, we could potentially update AI health status
           if (aiSettings.aiHealth !== 'DEGRADED') {
             await updateDoc(doc(db, 'global_settings', 'ai_config'), {
               aiHealth: 'DEGRADED'
@@ -10789,7 +10794,7 @@ export default function App() {
       const interval = setInterval(generateAdvice, 900000); // Every 15 minutes
       return () => clearInterval(interval);
     }
-  }, [profile, posts, aiSettings.isAIEnabled, aiSettings.aiHealth]);
+  }, [profile?.role, aiSettings.isAIEnabled]);
 
   const handleBookmark = async (postId: string) => {
     if (!user) return;
