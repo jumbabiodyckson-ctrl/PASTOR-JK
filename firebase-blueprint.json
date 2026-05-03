@@ -177,7 +177,7 @@
         "amount": { "type": "number", "description": "Amount paid." },
         "userId": { "type": "string", "description": "UID of the buyer." },
         "userEmail": { "type": "string", "description": "Email of the buyer." },
-        "method": { "type": "string", "enum": ["mpesa", "card", "flutterwave", "paypal", "bank"], "description": "Payment method used." },
+        "method": { "type": "string", "enum": ["mpesa", "stripe"], "description": "Payment method used." },
         "status": { "type": "string", "description": "Order status (e.g., completed)." },
         "receiptUrl": { "type": "string", "description": "URL to the uploaded payment receipt (for bank transfers)." },
         "createdAt": { "type": "string", "format": "date-time", "description": "When the order was placed." }

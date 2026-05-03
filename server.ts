@@ -64,87 +64,6 @@ async function startServer() {
   // Initial config load
   await getSystemPaymentConfig();
 
-  // --- M-Pesa Daraja Integration ---
-
-  const getMpesaToken = async () => {
-    // Refresh config to ensure we have the latest
-    await getSystemPaymentConfig();
-
-    const key = systemPaymentConfig?.mpesa?.consumerKey || process.env.MPESA_CONSUMER_KEY;
-    const secret = systemPaymentConfig?.mpesa?.consumerSecret || process.env.MPESA_CONSUMER_SECRET;
-    
-    if (!key || !secret) {
-      throw new Error("M-Pesa credentials not configured.");
-    }
-
-    const auth = Buffer.from(`${key}:${secret}`).toString("base64");
-
-    try {
-      const response = await axios.get(
-        "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
-        {
-          headers: {
-            Authorization: `Basic ${auth}`,
-          },
-        }
-      );
-      return response.data.access_token;
-    } catch (error) {
-      console.error("M-Pesa Token Error:", error);
-      throw error;
-    }
-  };
-
-  app.post("/api/mpesa/stkpush", async (req, res) => {
-    const { phoneNumber, amount, accountReference } = req.body;
-
-    try {
-      const token = await getMpesaToken();
-      const shortCode = systemPaymentConfig?.mpesa?.shortcode || process.env.MPESA_SHORTCODE;
-      const passkey = systemPaymentConfig?.mpesa?.passkey || process.env.MPESA_PASSKEY;
-      
-      if (!shortCode || !passkey) {
-        throw new Error("M-Pesa shortcode or passkey not configured.");
-      }
-
-      const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
-      const password = Buffer.from(`${shortCode}${passkey}${timestamp}`).toString("base64");
-
-      const response = await axios.post(
-        "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-        {
-          BusinessShortCode: shortCode,
-          Password: password,
-          Timestamp: timestamp,
-          TransactionType: "CustomerPayBillOnline",
-          Amount: amount,
-          PartyA: phoneNumber,
-          PartyB: shortCode,
-          PhoneNumber: phoneNumber,
-          CallBackURL: process.env.MPESA_CALLBACK_URL,
-          AccountReference: accountReference || "PastorJK",
-          TransactionDesc: "Payment for PastorJK services",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      res.json(response.data);
-    } catch (error: any) {
-      console.error("STK Push Error:", error.response?.data || error.message);
-      res.status(500).json({ error: error.message || "Payment initiation failed" });
-    }
-  });
-
-  app.post("/api/mpesa/callback", (req, res) => {
-    console.log("M-Pesa Callback Received:", JSON.stringify(req.body, null, 2));
-    // In a real app, you'd update Firestore here based on the result
-    res.json({ ResultCode: 0, ResultDesc: "Success" });
-  });
-
   // --- Stripe Integration ---
   app.post("/api/stripe/create-payment-intent", async (req, res) => {
     const { amount, currency, metadata } = req.body;
@@ -154,7 +73,10 @@ async function startServer() {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Stripe expects cents
         currency: currency.toLowerCase(),
-        metadata: metadata || {},
+        metadata: {
+          ...metadata,
+          contact_phone: "+254723523247" // Added per user request for all transactions
+        },
         automatic_payment_methods: {
           enabled: true,
         },
@@ -167,36 +89,11 @@ async function startServer() {
     }
   });
 
-  // --- Flutterwave Mock (Example of another system) ---
-  app.post("/api/flutterwave/initiate", async (req, res) => {
-    const { amount, currency, email, phoneNumber, name } = req.body;
-    // This is a mock for Flutterwave's standard checkout
-    res.json({
-      status: "success",
-      message: "Payment initiated",
-      data: {
-        link: "https://checkout.flutterwave.com/v3/hosted/pay/mock_link",
-      },
-    });
-  });
-
   app.get("/api/payment/config-status", async (req, res) => {
     await getSystemPaymentConfig();
     res.json({
-      mpesa: {
-        consumerKey: !!(systemPaymentConfig?.mpesa?.consumerKey || process.env.MPESA_CONSUMER_KEY),
-        consumerSecret: !!(systemPaymentConfig?.mpesa?.consumerSecret || process.env.MPESA_CONSUMER_SECRET),
-        shortCode: !!(systemPaymentConfig?.mpesa?.shortcode || process.env.MPESA_SHORTCODE),
-        passkey: !!(systemPaymentConfig?.mpesa?.passkey || process.env.MPESA_PASSKEY),
-        callbackUrl: !!(process.env.MPESA_CALLBACK_URL),
-      },
       stripe: {
         secretKey: !!(systemPaymentConfig?.stripe?.secretKey || process.env.STRIPE_SECRET_KEY),
-      },
-      paypal: {
-        clientId: !!(systemPaymentConfig?.paypal?.clientId || process.env.PAYPAL_CLIENT_ID),
-        clientSecret: !!(systemPaymentConfig?.paypal?.clientSecret || process.env.PAYPAL_CLIENT_SECRET),
-        webhookId: !!(systemPaymentConfig?.paypal?.webhookId || process.env.PAYPAL_WEBHOOK_ID),
       }
     });
   });

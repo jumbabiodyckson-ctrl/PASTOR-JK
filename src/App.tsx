@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, useRef, forwardRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, Suspense, useRef, forwardRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { 
@@ -37,6 +37,7 @@ import {
   ShoppingCart,
   Download,
   Sparkles,
+  Play,
   Languages,
   Volume2,
   Brain,
@@ -70,7 +71,6 @@ import {
   Linkedin,
   Link as LinkIcon,
   Copy,
-  PlusSquare,
   Terminal,
   Building2,
   Beaker,
@@ -126,7 +126,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 
-const stripePromise = loadStripe((import.meta as any).env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const initialStripePromise = loadStripe((import.meta as any).env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 import { 
   moderatePost, 
   generateCommentReply, 
@@ -583,62 +583,14 @@ const SermonNoteModal = ({
   );
 };
 
-const QuickActions = ({ onTakeNote }: { onTakeNote: () => void }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const navigate = useNavigate();
-
-  const actions = [
-    { icon: PlusSquare, label: 'QUICK_NOTE', onClick: onTakeNote, color: 'text-gold-500' },
-    { icon: Cross, label: 'BIBLE_READER', onClick: () => navigate('/bible'), color: 'text-blue-500' },
-    { icon: Volume2, label: 'SERMONS', onClick: () => navigate('/sermons'), color: 'text-purple-500' },
-    { icon: Video, label: 'VIDEOS', onClick: () => navigate('/videos'), color: 'text-red-500' },
-  ];
-
-  return (
-    <div className="fixed bottom-24 right-8 z-[100]">
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="mb-4 space-y-2 flex flex-col items-end"
-          >
-            {actions.map((action, i) => (
-              <motion.button
-                key={i}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => { action.onClick(); setIsOpen(false); }}
-                className="flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur-xl border border-white/10 rounded-sm hover:border-white/30 transition-all group shadow-2xl"
-              >
-                <span className="text-[9px] font-black tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity">{action.label}</span>
-                <action.icon className={`w-4 h-4 ${action.color}`} />
-              </motion.button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-12 h-12 rounded-sm border flex items-center justify-center transition-all shadow-2xl ${
-          isOpen ? 'bg-white text-black border-white rotate-45' : 'bg-black text-white border-white/20 hover:border-white'
-        }`}
-      >
-        <Plus className="w-6 h-6" />
-      </button>
-    </div>
-  );
-};
 
 const Footer = ({ contactInfo }: { contactInfo: ContactInfo }) => {
   const currentYear = new Date().getFullYear();
   
   return (
     <footer className="border-t border-white/10 bg-black pt-20 pb-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">
           <div className="space-y-6">
             <Link to="/" className="flex items-center gap-3 group">
               <div className="relative w-10 h-10 flex items-center justify-center">
@@ -649,13 +601,10 @@ const Footer = ({ contactInfo }: { contactInfo: ContactInfo }) => {
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-black tracking-[0.2em] uppercase glitter-text leading-none">PASTOR_JK</span>
-                <span className="text-[8px] font-black tracking-[0.4em] text-white/40 uppercase mt-1">ESTABLISHED_PROPHETIC_BRAND</span>
+                <span className="text-xl font-black tracking-[0.2em] uppercase glitter-text leading-tight">PASTOR_JK</span>
+                <span className="text-[8px] font-black tracking-[0.2em] text-white/40 uppercase mt-2">ESTABLISHED_PROPHETIC_BRAND</span>
               </div>
             </Link>
-            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] leading-relaxed">
-              DEDICATED_TO_THE_PROPHETIC_TRANSFORMATION_OF_GLOBAL_COMMUNITIES_THROUGH_STRATEGIC_WISDOM_AND_DIGITAL_INNOVATION.
-            </p>
             <div className="flex gap-4">
               <a href="#" className="p-2 border border-white/10 rounded-sm hover:border-white transition-all text-white/40 hover:text-white">
                 <Twitter className="w-4 h-4" />
@@ -713,7 +662,7 @@ const Footer = ({ contactInfo }: { contactInfo: ContactInfo }) => {
               </div>
               <Link 
                 to="/contact"
-                className="inline-block mt-4 px-6 py-3 border border-white/20 rounded-sm text-[8px] font-black tracking-widest uppercase hover:bg-white hover:text-black transition-all"
+                className="inline-block mt-6 px-10 py-5 border border-white/20 rounded-sm text-[10px] font-black tracking-widest uppercase hover:bg-white hover:text-black transition-all shadow-2xl"
               >
                 REQUEST_STRATEGIC_MEETING
               </Link>
@@ -721,15 +670,15 @@ const Footer = ({ contactInfo }: { contactInfo: ContactInfo }) => {
           </div>
         </div>
 
-        <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_theme(colors.green.500)]" />
-            <span className="text-[8px] font-black tracking-[0.3em] uppercase text-white/20">SYSTEM_OPERATIONAL_X100</span>
+        <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-12">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_15px_theme(colors.green.500)]" />
+            <span className="text-[9px] font-black tracking-[0.3em] uppercase text-white/20">SYSTEM_OPERATIONAL_X100</span>
           </div>
-          <p className="text-[8px] font-black tracking-[0.4em] uppercase text-white/10">
+          <p className="text-[9px] font-black tracking-[0.2em] uppercase text-white/10 text-center md:text-left leading-relaxed">
             © {currentYear} PASTOR_JK_GLOBAL_MINISTRIES. ALL_RIGHTS_RETAINED. PROPHETIC_INTEGRITY_ENFORCED.
           </p>
-          <div className="flex items-center gap-2 text-[8px] font-mono text-white/10 uppercase">
+          <div className="flex items-center gap-2 text-[9px] font-mono text-white/10 uppercase tracking-widest">
             BUILD_ID: 2024.04.PJK
           </div>
         </div>
@@ -746,11 +695,10 @@ interface StrategicInsight {
   createdAt: any;
 }
 
-const Navbar = ({ user, profile, onLogout, onOpenCreateModal, searchQuery, onSearchChange }: { 
+const Navbar = ({ user, profile, onLogout, searchQuery, onSearchChange }: { 
   user: FirebaseUser | null, 
   profile: UserProfile | null, 
   onLogout: () => void, 
-  onOpenCreateModal: () => void,
   searchQuery: string,
   onSearchChange: (query: string) => void
 }) => {
@@ -803,8 +751,8 @@ const Navbar = ({ user, profile, onLogout, onOpenCreateModal, searchQuery, onSea
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-black tracking-[0.2em] uppercase glitter-text leading-none">PASTOR_JK</span>
-                <span className="text-[8px] font-black tracking-[0.4em] text-white/40 uppercase mt-1">OFFICIAL_BRAND</span>
+                <span className="text-xl font-black tracking-[0.2em] uppercase glitter-text leading-tight">PASTOR_JK</span>
+                <span className="text-[8px] font-black tracking-[0.4em] text-white/40 uppercase mt-2">OFFICIAL_BRAND</span>
               </div>
             </Link>
             <div className="hidden sm:ml-10 sm:flex sm:items-center overflow-x-auto no-scrollbar max-w-[50vw] sm:space-x-8 pb-1">
@@ -842,23 +790,23 @@ const Navbar = ({ user, profile, onLogout, onOpenCreateModal, searchQuery, onSea
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-black" />
               </Link>
               {user ? (
-                <div className="flex items-center gap-4">
-                  <Link to="/profile" className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 hover:border-white/30 transition-all">
-                    <img src={user.photoURL || ''} alt="" className="w-6 h-6 rounded-full grayscale hover:grayscale-0 transition-all" referrerPolicy="no-referrer" />
-                    <span className="text-[10px] font-bold tracking-wider text-white/70">{user.displayName?.toUpperCase()}</span>
+                <div className="flex items-center gap-6">
+                  <Link to="/profile" className="flex items-center gap-4 bg-white/5 px-4 py-2.5 rounded-full border border-white/10 hover:border-white/30 transition-all">
+                    <img src={user.photoURL || ''} alt="" className="w-8 h-8 rounded-full grayscale hover:grayscale-0 transition-all" referrerPolicy="no-referrer" />
+                    <span className="text-[11px] font-bold tracking-wider text-white/70">{user.displayName?.toUpperCase()}</span>
                   </Link>
                   <button
                     onClick={onLogout}
-                    className="p-2 text-white/40 hover:text-white transition-colors"
+                    className="p-3 text-white/40 hover:text-white transition-colors hover:bg-white/5 rounded-full"
                     title="Logout"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-5 h-5" />
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => signInWithPopup(auth, googleProvider)}
-                  className="glitter-button glitter-gold inline-flex items-center px-6 py-2.5 text-[10px] font-black tracking-widest uppercase text-black hover:scale-105 transition-all rounded-sm shadow-lg"
+                  className="glitter-button glitter-gold inline-flex items-center px-10 py-4 text-[11px] font-black tracking-[0.2em] uppercase text-black hover:scale-105 transition-all rounded-sm shadow-2xl"
                 >
                   Sign In
                 </button>
@@ -923,11 +871,10 @@ const Navbar = ({ user, profile, onLogout, onOpenCreateModal, searchQuery, onSea
   );
 };
 
-const Sidebar = ({ user, profile, onLogout, onOpenCreateModal, searchQuery, onSearchChange }: { 
+const Sidebar = ({ user, profile, onLogout, searchQuery, onSearchChange }: { 
   user: FirebaseUser | null, 
   profile: UserProfile | null, 
   onLogout: () => void, 
-  onOpenCreateModal: () => void,
   searchQuery: string,
   onSearchChange: (query: string) => void
 }) => {
@@ -971,18 +918,18 @@ const Sidebar = ({ user, profile, onLogout, onOpenCreateModal, searchQuery, onSe
           <div className="relative w-10 h-10 flex items-center justify-center">
             <div className="absolute inset-0 bg-white/20 rounded-sm rotate-45 group-hover:rotate-90 transition-transform duration-500" />
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-4 h-4 border-2 border-white rounded-full mb-[-4px]" />
+              <div className="w-4 h-4 border-2 border-white rounded-full mb-0" />
               <div className="w-6 h-1 bg-white" />
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-black tracking-[0.2em] uppercase glitter-text leading-none">PASTOR_JK</span>
-            <span className="text-[8px] font-black tracking-[0.4em] text-white/40 uppercase mt-1">OFFICIAL_BRAND</span>
+            <span className="text-xl font-black tracking-[0.2em] uppercase glitter-text leading-tight">PASTOR_JK</span>
+            <span className="text-[8px] font-black tracking-[0.2em] text-white/40 uppercase mt-2">OFFICIAL_BRAND</span>
           </div>
         </Link>
       </div>
 
-      <div className="px-6 py-6 border-b border-white/10">
+      <div className="px-8 py-8 border-b border-white/10">
         <form onSubmit={handleSearch} className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
           <input 
@@ -990,12 +937,12 @@ const Sidebar = ({ user, profile, onLogout, onOpenCreateModal, searchQuery, onSe
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
             placeholder="SEARCH_SYSTEM..."
-            className="w-full bg-white/5 border border-white/10 rounded-sm pl-8 pr-4 py-3 text-[8px] font-black tracking-widest uppercase focus:outline-none focus:border-white/30 transition-all"
+            className="w-full bg-white/5 border border-white/10 rounded-sm pl-8 pr-4 py-4 text-[9px] font-black tracking-widest uppercase focus:outline-none focus:border-white/30 transition-all shadow-inner"
           />
         </form>
       </div>
 
-      <nav className="flex-1 p-6 space-y-2">
+      <nav className="flex-1 p-8 space-y-4">
         {navItems.map((item) => (
           <Link
             key={item.name}
@@ -1013,7 +960,7 @@ const Sidebar = ({ user, profile, onLogout, onOpenCreateModal, searchQuery, onSe
         
         {(profile?.role === 'admin' || profile?.role === 'contributor') && (
           <div className="mt-8 pt-8 border-t border-white/10">
-            <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.4em] mb-4 px-4">
+            <p className="text-[9px] font-black tracking-[0.2em] uppercase text-white/40 mb-4 px-6 md:px-0">
               {profile?.role === 'admin' ? 'ADMIN_CONTROLS' : 'CONTRIBUTOR_CONTROLS'}
             </p>
           </div>
@@ -1117,33 +1064,33 @@ const VideoPlayerModal = ({ isOpen, onClose, videoUrl, title, postId }: { isOpen
         className="glass-card w-full max-w-6xl overflow-hidden rounded-sm border-white/20 shadow-2xl flex flex-col md:flex-row h-[90vh]"
       >
         <div className={`flex-1 flex flex-col ${showNotes ? 'md:w-2/3' : 'w-full'}`}>
-          <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-            <div className="flex items-center gap-3">
-              <Video className="w-5 h-5 text-white/40" />
-              <h2 className="text-sm font-black tracking-widest uppercase truncate max-w-[200px] md:max-w-md">{title}</h2>
-            </div>
+          <div className="p-8 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
             <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-2 bg-white/5 px-3 py-1 rounded-sm border border-white/10">
-                <Sparkles className="w-3 h-3 text-white/40" />
+              <Video className="w-6 h-6 text-white/40" />
+              <h2 className="text-base font-black tracking-widest uppercase truncate max-w-[200px] md:max-w-md">VIDEO_STREAM: {title}</h2>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="hidden lg:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-sm border border-white/10 shadow-lg">
+                <Sparkles className="w-4 h-4 text-gold-500/60" />
                 <select 
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  className="bg-transparent text-[8px] font-black uppercase tracking-widest focus:outline-none cursor-pointer"
+                  className="bg-transparent text-[10px] font-black uppercase tracking-widest focus:outline-none cursor-pointer text-white/80"
                 >
                   {filters.map(f => (
-                    <option key={f.name} value={f.value} className="bg-black text-white">{f.name}</option>
+                    <option key={f.name} value={f.value} className="bg-[#050505] text-white py-4">{f.name}</option>
                   ))}
                 </select>
               </div>
               <button 
                 onClick={() => setShowNotes(!showNotes)}
-                className={`p-2 rounded-sm transition-all ${showNotes ? 'bg-white text-black' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                className={`p-3 rounded-sm transition-all shadow-xl hover:scale-105 ${showNotes ? 'bg-gold-500 text-black' : 'bg-white/5 text-white/40 hover:text-white border border-white/10'}`}
                 title="Toggle Notes"
               >
-                <BookOpen className="w-5 h-5" />
+                <BookOpen className="w-6 h-6" />
               </button>
-              <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
-                <X className="w-6 h-6" />
+              <button onClick={onClose} className="text-white/40 hover:text-white transition-all hover:rotate-90 p-2">
+                <X className="w-8 h-8" />
               </button>
             </div>
           </div>
@@ -1158,13 +1105,14 @@ const VideoPlayerModal = ({ isOpen, onClose, videoUrl, title, postId }: { isOpen
             />
           </div>
 
-          <div className="p-6 bg-white/5 flex justify-between items-center">
+          <div className="p-8 bg-white/[0.02] border-t border-white/10 flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <p className="text-[10px] font-black tracking-widest uppercase text-white/40">OFFICIAL_BRAND_STREAM</p>
+              <div className="w-2 h-2 bg-red-600 rounded-full animate-ping" />
+              <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20">OFFICIAL_BRAND_ENCRYPTED_STREAM</p>
             </div>
             <button 
               onClick={onClose}
-              className="text-[10px] font-black tracking-widest uppercase bg-white text-black px-6 py-2 rounded-sm hover:bg-white/80 transition-all"
+              className="text-[11px] font-black tracking-[0.2em] uppercase bg-white text-black px-10 py-4 rounded-sm hover:scale-105 active:scale-95 transition-all shadow-2xl"
             >
               CLOSE_PLAYER
             </button>
@@ -1257,46 +1205,47 @@ const ShareModal = ({ isOpen, onClose, post, notify }: { isOpen: boolean, onClos
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="glass-card w-full max-w-sm p-8 rounded-sm border-white/20 shadow-2xl"
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="glass-card w-full max-w-sm p-12 rounded-sm border-white/20 shadow-2xl relative overflow-hidden"
       >
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-sm font-black tracking-widest uppercase">AMPLIFY_VISION</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="flex justify-between items-center mb-10">
+          <h2 className="text-[11px] font-black tracking-[0.3em] uppercase text-white/80">AMPLIFY_VISION</h2>
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-all hover:rotate-90">
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-6 mb-12">
           {shareOptions.map((option) => (
             <a
               key={option.name}
               href={option.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex flex-col items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-sm transition-all ${option.color} hover:bg-white/10`}
+              className={`flex flex-col items-center gap-4 p-8 bg-white/5 border border-white/10 rounded-sm transition-all ${option.color} hover:bg-white/10 hover:border-white/30`}
             >
-              <option.icon className="w-6 h-6" />
-              <span className="text-[8px] font-black uppercase tracking-widest">{option.name}</span>
+              <option.icon className="w-8 h-8" />
+              <span className="text-[10px] font-black uppercase tracking-widest">{option.name}</span>
             </a>
           ))}
         </div>
 
-        <div className="space-y-3">
-          <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">DIRECT_LINK</p>
-          <div className="flex gap-2">
+        <div className="space-y-4">
+          <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">SECURE_DIRECT_LINK</p>
+          <div className="flex gap-4">
             <input
               readOnly
               value={shareUrl}
-              className="flex-1 bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-[10px] font-mono text-white/60 focus:outline-none"
+              className="flex-1 bg-white/5 border border-white/10 rounded-sm px-6 py-5 text-[11px] font-mono text-white/50 focus:outline-none"
             />
             <button
               onClick={copyToClipboard}
-              className="px-4 py-3 bg-white text-black rounded-sm hover:bg-white/80 transition-all"
+              className="px-8 py-5 bg-white text-black rounded-sm hover:bg-gold-500 transition-all shadow-xl active:scale-95"
             >
-              <LinkIcon className="w-4 h-4" />
+              <LinkIcon className="w-6 h-6" />
             </button>
           </div>
         </div>
@@ -1362,7 +1311,18 @@ const PostCard = ({
     setCommentText('');
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    if (post.pdfStoragePath) {
+      try {
+        const response = await axios.get(`/api/media/secure-url?storagePath=${encodeURIComponent(post.pdfStoragePath)}`);
+        if (response.data.url) {
+          window.open(response.data.url, '_blank');
+          return;
+        }
+      } catch (error) {
+        console.log("[SECURITY]: Falling back to standard media link due to protocol latency.");
+      }
+    }
     const link = document.createElement('a');
     link.href = post.mediaUrl;
     link.download = `${post.title}.pdf`;
@@ -1463,8 +1423,8 @@ const PostCard = ({
             <div className="relative z-10 w-20 h-20 bg-white/10 border border-white/20 rounded-full flex items-center justify-center group-hover/play:scale-110 group-hover/play:bg-white group-hover/play:text-black transition-all duration-500">
               <Video className="w-8 h-8" />
             </div>
-            <span className="absolute bottom-6 text-[8px] font-black tracking-[0.4em] uppercase text-white/40 group-hover/play:text-white transition-colors">
-              ACTIVATE_STREAM
+            <span className="absolute bottom-10 text-[9px] font-black tracking-[0.2em] uppercase text-white/40 group-hover/play:text-white transition-colors">
+              ACTIVATE_STRATEGIC_STREAM
             </span>
           </button>
         )}
@@ -1473,74 +1433,64 @@ const PostCard = ({
             <Book className="w-12 h-12 text-white/20 group-hover:text-white transition-colors" />
           </div>
         )}
-        <div className="absolute top-4 left-4 flex gap-2">
-          <span className="text-[8px] font-black tracking-[0.2em] uppercase bg-white text-black px-2 py-1">
+        <div className="absolute top-6 left-6 flex gap-3">
+          <span className="text-[9px] font-black tracking-[0.2em] uppercase bg-white text-black px-3 py-1.5 shadow-xl">
             {post.type}
           </span>
           <button 
             onClick={(e) => { e.stopPropagation(); onBookmark(post.id); }}
-            className={`p-1.5 rounded-sm transition-all flex items-center gap-2 ${isBookmarked ? 'bg-white text-black' : 'bg-black/40 text-white hover:bg-black/60'}`}
+            className={`p-2.5 rounded-sm transition-all flex items-center gap-3 shadow-xl ${isBookmarked ? 'bg-white text-black' : 'bg-black/40 text-white hover:bg-black/60'}`}
             title={post.type === 'video' || post.type === 'sermon' ? 'Queue for Excellence' : post.type === 'devotion' ? 'Reserve for Reflection' : 'Archive Wisdom'}
           >
-            {isBookmarked ? <BookmarkCheck className="w-3 h-3" /> : <Bookmark className="w-3 h-3" />}
-            <span className="text-[8px] font-black uppercase tracking-tighter">
+            {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+            <span className="text-[9px] font-black uppercase tracking-tighter">
               {isBookmarked ? 'WISDOM_ARCHIVED' : (post.type === 'video' || post.type === 'sermon' ? 'QUEUE_FOR_EXCELLENCE' : post.type === 'devotion' ? 'RESERVE_FOR_REFLECTION' : 'ARCHIVE_WISDOM')}
             </span>
           </button>
         </div>
         {post.price && post.price > 0 && (
-          <div className="absolute top-4 right-4">
-            <span className="text-[10px] font-black bg-white text-black px-2 py-1">
+          <div className="absolute top-6 right-6">
+            <span className="text-[11px] font-black bg-white text-black px-4 py-2 shadow-2xl">
               ${post.price}
             </span>
           </div>
         )}
       </div>
 
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
+      <div className="p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-6">
             <button 
               onClick={() => onLike?.(post.id)}
               className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${isLiked ? 'text-red-500' : 'text-white/40 hover:text-white'}`}
             >
-              <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-              {post.likesCount || 0} IMPACT_POINTS
+              <ThumbsUp className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+              {post.likesCount || 0} IMPACT
             </button>
             <button 
               onClick={() => setShowComments(!showComments)}
               className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
             >
-              <MessageSquare className="w-4 h-4" />
-              {comments.length} STRATEGIC_DIALOGUE
+              <MessageSquare className="w-5 h-5" />
+              {comments.length} DIALOGUE
             </button>
             <button 
               onClick={() => onTakeNote?.(`INSIGHT: From "${post.title}"\n\n`, post)}
               className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
               title="Take Note"
             >
-              <Plus className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={() => setIsShareModalOpen(true)}
-              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
-            >
-              <Share2 className="w-4 h-4" />
-              AMPLIFY_INFLUENCE
+              <Plus className="w-5 h-5" />
             </button>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest text-white/20">
-              <Clock className="w-3 h-3" />
-              {readingTime} MIN
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20">
+              <Clock className="w-4 h-4" />
+              {readingTime} MIN_ENGAGEMENT
             </div>
-            <span className="text-[10px] font-mono text-white/40 uppercase">
-              {new Date(post.createdAt?.toDate()).toLocaleDateString()}
-            </span>
           </div>
         </div>
-        <h3 className="text-xl font-black tracking-tight mb-3 uppercase">{post.title}</h3>
-        <p className="text-white/60 text-sm mb-6 font-medium leading-relaxed line-clamp-2">{post.content}</p>
+        <h3 className="text-2xl font-black tracking-tight mb-4 uppercase leading-tight">{post.title}</h3>
+        <p className="text-white/50 text-sm mb-8 font-medium leading-[1.8] line-clamp-3">{post.content}</p>
         
         <ShareModal 
           isOpen={isShareModalOpen} 
@@ -3450,22 +3400,18 @@ const MissionSection = forwardRef<HTMLDivElement>((_, ref) => {
            viewport={{ once: true }}
            className="relative"
         >
-          <div className="relative aspect-square overflow-hidden rounded-sm border border-white/10 group">
-             <div className="absolute inset-0 bg-white/10 rotate-3 scale-110 group-hover:rotate-0 transition-transform duration-700" />
-             <img 
-               src="https://picsum.photos/seed/vision/1000/1000" 
-               alt="Vision" 
-               className="w-full h-full object-cover grayscale opacity-50 transition-all group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 duration-700"
-               referrerPolicy="no-referrer"
-             />
-             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent p-10 flex flex-col justify-end">
-                <Quote className="w-12 h-12 text-white/20 mb-6" />
-                <p className="text-xl sm:text-2xl font-black italic tracking-tight uppercase leading-tight glitter-text">
+          <div className="p-16 glitter-card border-white/10 rounded-sm bg-white/[0.02] flex items-center justify-center relative overflow-hidden group h-full">
+             <div className="absolute inset-0 bg-gradient-to-br from-gold-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+             <div className="relative z-10 text-center space-y-8">
+                <Quote className="w-16 h-16 text-white/10 mx-auto mb-8 group-hover:text-gold-500/40 transition-colors" />
+                <p className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase leading-[1.1] glitter-text max-w-lg mx-auto">
                   "Influence is determined by the depth of your roots and the precision of your branches."
                 </p>
-                <p className="mt-6 text-[10px] font-black tracking-[0.4em] uppercase text-white/40 flex items-center gap-4">
-                  <span className="h-px w-8 bg-white/20" /> PASTOR JK
-                </p>
+                <div className="flex items-center justify-center gap-6">
+                   <div className="h-px w-12 bg-white/20" />
+                   <span className="text-[12px] font-black tracking-[0.5em] uppercase text-white/40 group-hover:text-white transition-colors">PASTOR JK</span>
+                   <div className="h-px w-12 bg-white/20" />
+                </div>
              </div>
           </div>
         </motion.div>
@@ -3834,6 +3780,64 @@ const HomePage = ({ sites, user, team, aiSettings, posts, onTakeNote }: { sites:
       </div>
 
       <MissionSection ref={missionRef} />
+      
+      {/* Video Streams Section */}
+      <div className="mt-32">
+        <div className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-4">
+            <div className="h-px w-12 bg-white/20" />
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter uppercase glitter-text">VIDEO_STREAMS</h1>
+          </div>
+          <Link to="/videos" className="text-[10px] font-black tracking-widest text-gold-500 uppercase hover:text-white transition-colors">
+            VIEW_ALL <ChevronRight className="w-3 h-3 inline ml-1" />
+          </Link>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {posts.filter(p => p.type === 'video').slice(0, 2).map((video, i) => (
+            <motion.div 
+              key={video.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="group relative aspect-video bg-black border border-white/10 rounded-sm overflow-hidden"
+            >
+              {video.mediaUrl && (
+                <video 
+                  src={video.mediaUrl} 
+                  className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700"
+                  muted
+                  onMouseOver={(e) => (e.target as HTMLVideoElement).play()}
+                  onMouseOut={(e) => {
+                    (e.target as HTMLVideoElement).pause();
+                    (e.target as HTMLVideoElement).currentTime = 0;
+                  }}
+                />
+              )}
+              <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-[8px] font-black bg-white/10 px-2 py-0.5 rounded-sm tracking-widest uppercase">LATEST_STREAM</span>
+                  <span className="text-[8px] font-mono text-white/40 uppercase">{(video.createdAt as any)?.toDate?.().toLocaleDateString()}</span>
+                </div>
+                <h3 className="text-xl font-black uppercase tracking-tight group-hover:text-gold-500 transition-colors">{video.title}</h3>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20">
+                  <Play className="w-6 h-6 text-white fill-white" />
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Prophetic Text after videos as requested */}
+        <div className="mt-16 p-10 border border-white/5 bg-white/[0.01] rounded-sm text-center">
+          <p className="text-[10px] font-black text-gold-500/40 uppercase tracking-[0.4em] leading-loose max-w-2xl mx-auto">
+            DEDICATED_TO_THE_PROPHETIC_TRANSFORMATION_OF_GLOBAL_COMMUNITIES_THROUGH_STRATEGIC_WISDOM_AND_DIGITAL_INNOVATION.
+          </p>
+        </div>
+      </div>
 
       {/* Team Section */}
       <div className="mt-32">
@@ -4358,7 +4362,7 @@ const ContentPage = ({
           </div>
           <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase leading-none glitter-text">{type}s</h1>
         </div>
-        <p className="text-[10px] font-black tracking-[0.4em] text-white/30 uppercase max-w-xs text-right">
+        <p className="text-[10px] font-black tracking-[0.2em] text-white/30 uppercase max-w-xs text-right leading-loose">
           Curated content for the modern brand.
         </p>
       </div>
@@ -4402,11 +4406,19 @@ const ContentPage = ({
         </div>
       )}
 
+      {type === 'video' && (
+        <div className="mt-32 p-12 glitter-card rounded-sm border-white/10 text-center bg-white/[0.02]">
+          <p className="text-[11px] font-black text-gold-500/60 uppercase tracking-[0.4em] leading-loose max-w-3xl mx-auto">
+            DEDICATED_TO_THE_PROPHETIC_TRANSFORMATION_OF_GLOBAL_COMMUNITIES_THROUGH_STRATEGIC_WISDOM_AND_DIGITAL_INNOVATION.
+          </p>
+        </div>
+      )}
+
       {hasMore && (
         <div className="mt-20 flex justify-center">
           <button
             onClick={onLoadMore}
-            className="px-12 py-4 bg-white/5 border border-white/10 rounded-sm text-[10px] font-black tracking-[0.4em] uppercase hover:bg-white hover:text-black transition-all"
+            className="px-16 py-5 bg-white/5 border border-white/10 rounded-sm text-[11px] font-black tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all"
           >
             LOAD_MORE_CONTENT
           </button>
@@ -4598,10 +4610,10 @@ const EventsPage = () => {
   );
 };
 
-const SupportPage = ({ user }: { user: FirebaseUser | null }) => {
+const SupportPage = ({ user, paymentSettings, stripePromise }: { user: FirebaseUser | null, paymentSettings: any, stripePromise: any }) => {
   const [amount, setAmount] = useState('50');
   const [currency, setCurrency] = useState('USD');
-  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'card' | 'flutterwave' | 'paypal' | 'bank'>('mpesa');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe'>('stripe');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [type, setType] = useState<'tithe' | 'offering' | 'support' | 'other'>('support');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -4631,39 +4643,19 @@ const SupportPage = ({ user }: { user: FirebaseUser | null }) => {
   const handleSupport = async () => {
     if (!user) return;
     
-    if (paymentMethod === 'card') {
+    // Prioritize configured checkout links per user request
+    if (paymentSettings?.stripe?.generalContributionLink) {
+      window.open(paymentSettings.stripe.generalContributionLink, '_blank');
+      return;
+    }
+
+    if (paymentMethod === 'stripe') {
       setShowStripeForm(true);
       return;
     }
 
     setIsProcessing(true);
     try {
-      if (paymentMethod === 'mpesa') {
-        const response = await axios.post('/api/mpesa/stkpush', {
-          phoneNumber: phoneNumber.replace('+', ''),
-          amount: parseFloat(amount),
-          accountReference: type.toUpperCase()
-        });
-        
-        if (response.data.ResponseCode === '0') {
-          alert("STK_PUSH_SENT: Please enter your PIN on your phone to complete the transaction.");
-        } else {
-          throw new Error(response.data.ResponseDescription);
-        }
-      } else if (paymentMethod === 'flutterwave') {
-        const response = await axios.post('/api/flutterwave/initiate', {
-          amount: parseFloat(amount),
-          currency,
-          email: user.email,
-          phoneNumber,
-          name: user.displayName
-        });
-        window.open(response.data.data.link, '_blank');
-      } else if (paymentMethod === 'paypal') {
-        alert("PAYPAL_REDIRECT: Redirecting to secure PayPal gateway...");
-        setTimeout(() => window.open('https://paypal.com', '_blank'), 1000);
-      }
-      
       const donationId = Math.random().toString(36).substr(2, 9);
       await setDoc(doc(db, 'donations', donationId), {
         id: donationId,
@@ -4673,13 +4665,10 @@ const SupportPage = ({ user }: { user: FirebaseUser | null }) => {
         currency,
         paymentMethod,
         type,
-        status: 'pending',
+        status: 'completed',
         createdAt: serverTimestamp()
       });
-      
-      if (paymentMethod !== 'mpesa') {
-        setShowSuccess(true);
-      }
+      setShowSuccess(true);
     } catch (error: any) {
       console.error("Support failed:", error);
       alert(`TRANSACTION_FAILED: ${error.message || 'Please try again.'}`);
@@ -4697,7 +4686,7 @@ const SupportPage = ({ user }: { user: FirebaseUser | null }) => {
       userEmail: user.email,
       amount: parseFloat(amount),
       currency,
-      paymentMethod: 'card',
+      paymentMethod: 'stripe',
       type,
       status: 'completed',
       createdAt: serverTimestamp()
@@ -4727,11 +4716,7 @@ const SupportPage = ({ user }: { user: FirebaseUser | null }) => {
               <label className="text-[10px] font-black tracking-widest text-white/40 uppercase">SELECT_PAYMENT_METHOD</label>
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { id: 'mpesa', label: 'M-PESA', icon: Smartphone },
-                  { id: 'card', label: 'STRIPE_CARD', icon: CreditCard },
-                  { id: 'flutterwave', label: 'FLUTTERWAVE', icon: Zap },
-                  { id: 'paypal', label: 'PAYPAL', icon: Globe },
-                  { id: 'bank', label: 'BANK_TRANSFER', icon: Building2 }
+                  { id: 'stripe', label: 'STRIPE_CARD', icon: CreditCard }
                 ].map((method) => (
                   <button
                     key={method.id}
@@ -4749,42 +4734,7 @@ const SupportPage = ({ user }: { user: FirebaseUser | null }) => {
               </div>
             </div>
 
-            {paymentMethod === 'bank' && paymentConfig?.bank && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="p-8 bg-white/5 border border-white/10 rounded-sm space-y-6"
-              >
-                <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-                  <Building2 className="w-5 h-5 text-gold-500" />
-                  <span className="text-[10px] font-black tracking-widest uppercase">OFFICIAL_BANK_ACCOUNT</span>
-                </div>
-                <div className="space-y-4">
-                  {[
-                    { label: 'BANK_NAME', value: paymentConfig.bank.bankName },
-                    { label: 'ACCOUNT_NAME', value: paymentConfig.bank.receiverName },
-                    { label: 'ACCOUNT_NUMBER', value: paymentConfig.bank.accountNumber },
-                    { label: 'SWIFT_CODE', value: paymentConfig.bank.swiftCode }
-                  ].map((field, i) => (
-                    <div key={i} className="flex flex-col gap-1">
-                      <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">{field.label}</span>
-                      <div className="flex items-center justify-between group">
-                        <span className="text-sm font-black uppercase tracking-tight">{field.value}</span>
-                        <button 
-                          onClick={() => {
-                            navigator.clipboard.writeText(field.value);
-                            alert("COPIED_TO_CLIPBOARD");
-                          }}
-                          className="p-2 opacity-0 group-hover:opacity-100 transition-all hover:text-gold-500"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+            {/* Support section payment methods cleaned up */}
 
             {showStripeForm ? (
               <Elements stripe={stripePromise}>
@@ -4823,18 +4773,6 @@ const SupportPage = ({ user }: { user: FirebaseUser | null }) => {
                   </div>
                 </div>
 
-                {paymentMethod === 'mpesa' && (
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black tracking-widest text-white/40 uppercase">PHONE_NUMBER (254...)</label>
-                    <input 
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="254712345678"
-                      className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-4 text-sm font-black focus:outline-none focus:border-white transition-all"
-                    />
-                  </div>
-                )}
 
                 <div className="space-y-4">
                   <label className="text-[10px] font-black tracking-widest text-white/40 uppercase">CONTRIBUTION_TYPE</label>
@@ -5065,6 +5003,9 @@ const SermonNotesPage = ({ notify }: { notify: (msg: string, type: any) => void 
             <span className="text-[10px] font-black tracking-[0.5em] text-gold-500 uppercase">PROPHETIC_ARCHIVE</span>
           </div>
           <h1 className="text-4xl sm:text-7xl font-black tracking-tighter uppercase leading-none glitter-text">YOUR_REVELATIONS</h1>
+          <p className="text-[11px] font-black text-gold-500/40 uppercase tracking-[0.1em] leading-loose mt-6 max-w-2xl">
+            DEDICATED_TO_THE_PROPHETIC_TRANSFORMATION_OF_GLOBAL_COMMUNITIES_THROUGH_STRATEGIC_WISDOM_AND_DIGITAL_INNOVATION.
+          </p>
         </div>
         <div className="flex flex-col items-start md:items-end">
           <span className="text-[10px] font-black tracking-widest text-white/20 uppercase mb-2">INSIGHT_DENSITY</span>
@@ -5281,7 +5222,7 @@ const OrdersTab = () => {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-[8px] font-black px-2 py-0.5 rounded-sm uppercase ${
-                    order.method === 'bank' ? 'bg-blue-500/20 text-blue-500' : 'bg-white/10 text-white/40'
+                    order.method === 'stripe' ? 'bg-blue-500/20 text-blue-500' : 'bg-white/10 text-white/40'
                   }`}>{order.method}</span>
                   <p className="text-[10px] font-black tracking-widest uppercase">{order.postTitle}</p>
                 </div>
@@ -5572,25 +5513,25 @@ const SermonOutlineModal = ({ post, onClose, notify }: { post: Post, onClose: ()
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         className="relative w-full max-w-4xl max-h-[90vh] bg-[#151619] border border-white/10 rounded-sm flex flex-col overflow-hidden"
       >
-        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white flex items-center justify-center text-black">
-              <Cross className="w-6 h-6" />
+        <div className="p-10 border-b border-white/10 flex justify-between items-center bg-white/[0.05]">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white flex items-center justify-center text-black shadow-2xl">
+              <Cross className="w-7 h-7" />
             </div>
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tighter">AI_SERMON_STRATEGY</h2>
-              <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">SOURCE: {post.title || 'Selected Content'}</p>
+              <h2 className="text-2xl font-black uppercase tracking-tighter">AI_SERMON_STRATEGY</h2>
+              <p className="text-[11px] font-mono text-white/40 uppercase tracking-widest">SOURCE: {post.title || 'Selected Content'}</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-sm transition-colors"
+            className="p-3 hover:bg-white/10 rounded-sm transition-all hover:rotate-90"
           >
-            <X className="w-6 h-6" />
+            <X className="w-8 h-8" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
           {isGenerating ? (
             <div className="h-full flex flex-col items-center justify-center gap-6">
               <div className="relative w-24 h-24">
@@ -5667,25 +5608,25 @@ const MarketingSuiteModal = ({ post, onClose, notify }: { post: Post, onClose: (
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         className="relative w-full max-w-4xl max-h-[90vh] bg-[#151619] border border-white/10 rounded-sm flex flex-col overflow-hidden"
       >
-        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white flex items-center justify-center text-black">
-              <Target className="w-6 h-6" />
+        <div className="p-10 border-b border-white/10 flex justify-between items-center bg-white/[0.05]">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white flex items-center justify-center text-black shadow-2xl">
+              <Target className="w-7 h-7" />
             </div>
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tighter">AI_MARKETING_SUITE</h2>
-              <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">POST: {post.title}</p>
+              <h2 className="text-2xl font-black uppercase tracking-tighter">AI_MARKETING_SUITE</h2>
+              <p className="text-[11px] font-mono text-white/40 uppercase tracking-widest">POST: {post.title}</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-sm transition-colors"
+            className="p-3 hover:bg-white/10 rounded-sm transition-all hover:rotate-90"
           >
-            <X className="w-6 h-6" />
+            <X className="w-8 h-8" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
           {isGenerating ? (
             <div className="h-full flex flex-col items-center justify-center gap-6">
               <div className="relative w-24 h-24">
@@ -5744,8 +5685,8 @@ const MarketingSuiteModal = ({ post, onClose, notify }: { post: Post, onClose: (
   );
 };
 
-const PaymentModal = ({ post, user, onClose, notify }: { post: Post, user: FirebaseUser | null, onClose: () => void, notify?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void }) => {
-  const [method, setMethod] = useState<'mpesa' | 'card' | 'flutterwave' | 'paypal' | 'bank'>('mpesa');
+const PaymentModal = ({ post, user, onClose, notify, paymentSettings, stripePromise }: { post: Post, user: FirebaseUser | null, onClose: () => void, notify?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void, paymentSettings: any, stripePromise: any }) => {
+  const [method, setMethod] = useState<'stripe'>('stripe');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<'select' | 'details' | 'processing' | 'success'>('select');
@@ -5754,7 +5695,21 @@ const PaymentModal = ({ post, user, onClose, notify }: { post: Post, user: Fireb
   const handlePayment = async () => {
     if (!user) return;
     
-    if (method === 'card') {
+    // Prioritize links per user request
+    if (post.type === 'book') {
+      const link = paymentSettings?.stripe?.bookPaymentLink || 'https://buy.stripe.com/test_8x228rejYfKn5OK18sgIo00';
+      window.open(link, '_blank');
+      onClose();
+      return;
+    }
+    
+    if (paymentSettings?.stripe?.generalContributionLink) {
+      window.open(paymentSettings.stripe.generalContributionLink, '_blank');
+      onClose();
+      return;
+    }
+
+    if (method === 'stripe') {
       setShowStripeForm(true);
       return;
     }
@@ -5763,29 +5718,6 @@ const PaymentModal = ({ post, user, onClose, notify }: { post: Post, user: Fireb
     setStep('processing');
     
     try {
-      if (method === 'mpesa') {
-        const response = await axios.post('/api/mpesa/stkpush', {
-          phoneNumber: phoneNumber.replace('+', ''),
-          amount: post.price || 49.99,
-          accountReference: post.title.substring(0, 12)
-        });
-        if (response.data.ResponseCode !== '0') throw new Error(response.data.ResponseDescription);
-        if (notify) notify("STK_PUSH_SENT: Protocol initiated. Verify transaction on your mobile terminal.", "info");
-      } else if (method === 'flutterwave') {
-        const response = await axios.post('/api/flutterwave/initiate', {
-          amount: post.price || 49.99,
-          currency: 'USD',
-          email: user.email,
-          phoneNumber,
-          name: user.displayName
-        });
-        window.open(response.data.data.link, '_blank');
-      } else if (method === 'paypal') {
-        window.open('https://paypal.com', '_blank');
-      } else if (method === 'bank') {
-        if (notify) notify("BANK_TRANSFER_INSTRUCTIONS: Direct deposit to 1234567890. Upload verification document once complete.", "info");
-      }
-
       const orderId = Math.random().toString(36).substr(2, 9);
       const cleanOrder = {
         id: orderId,
@@ -5795,7 +5727,7 @@ const PaymentModal = ({ post, user, onClose, notify }: { post: Post, user: Fireb
         userEmail: user.email,
         amount: post.price || 49.99,
         method,
-        status: method === 'mpesa' ? 'pending' : 'completed',
+        status: 'completed',
         createdAt: serverTimestamp()
       };
       await setDoc(doc(db, 'orders', orderId), cleanOrder);
@@ -5820,7 +5752,7 @@ const PaymentModal = ({ post, user, onClose, notify }: { post: Post, user: Fireb
       userUid: user.uid,
       userEmail: user.email,
       amount: post.price || 49.99,
-      method: 'card',
+      method: 'stripe',
       status: 'completed',
       createdAt: serverTimestamp()
     });
@@ -5853,16 +5785,37 @@ const PaymentModal = ({ post, user, onClose, notify }: { post: Post, user: Fireb
         </div>
 
         <div className="p-8">
-          {step === 'select' && (
+          {step === 'select' && post.type === 'book' && (
+            <div className="space-y-6">
+              <div className="p-8 bg-gold-500/5 border border-gold-500/20 rounded-sm text-center">
+                <p className="text-[10px] font-black text-gold-500 uppercase tracking-[0.2em] leading-relaxed mb-6">
+                  OFFICIAL_ACQUISITION_CHANNEL_ACTIVE
+                </p>
+                <div className="text-3xl font-black mb-2">${(post.price || 49.99).toFixed(2)}</div>
+                <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">SECURE_STRIPE_PROTOCOL</p>
+              </div>
+              <button 
+                onClick={handlePayment}
+                className="w-full glitter-button glitter-gold py-6 text-[11px] font-black tracking-[0.4em] uppercase rounded-sm flex items-center justify-center gap-3"
+              >
+                <ExternalLink className="w-4 h-4" />
+                GET_OFFICIAL_COPY
+              </button>
+              <button 
+                onClick={onClose}
+                className="w-full py-4 text-[10px] font-black text-white/20 uppercase tracking-widest hover:text-white transition-colors"
+              >
+                CANCEL_ACQUISITION
+              </button>
+            </div>
+          )}
+
+          {step === 'select' && post.type !== 'book' && (
             <div className="space-y-6">
               <p className="text-[10px] font-black tracking-widest text-white/40 uppercase mb-4">SELECT_PAYMENT_METHOD</p>
               <div className="grid grid-cols-1 gap-4">
                 {[
-                  { id: 'mpesa', label: 'M-PESA_DARAJA', icon: Smartphone, desc: 'STK_PUSH_INSTANT_PAY', color: 'text-green-500' },
-                  { id: 'bank', label: 'BANK_TRANSFER', icon: ExternalLink, desc: 'DIRECT_WIRE_SETTLEMENT', color: 'text-blue-500' },
-                  { id: 'card', label: 'STRIPE_CARD', icon: CreditCard, desc: 'SECURE_BANKING_GATEWAY', color: 'text-blue-500' },
-                  { id: 'flutterwave', label: 'FLUTTERWAVE', icon: Zap, desc: 'AFRICA_GLOBAL_PAYMENTS', color: 'text-yellow-500' },
-                  { id: 'paypal', label: 'PAYPAL', icon: Globe, desc: 'INTERNATIONAL_CHECKOUT', color: 'text-blue-400' }
+                  { id: 'stripe', label: 'STRIPE_CARD', icon: CreditCard, desc: 'SECURE_BANKING_GATEWAY', color: 'text-blue-500' }
                 ].map((m) => (
                   <button 
                     key={m.id}
@@ -5887,58 +5840,26 @@ const PaymentModal = ({ post, user, onClose, notify }: { post: Post, user: Fireb
 
           {step === 'details' && (
             <div className="space-y-6">
-              {method === 'card' ? (
-                <Elements stripe={stripePromise}>
-                  <StripePaymentForm 
-                    amount={post.price || 49.99} 
-                    currency="USD" 
-                    onSuccess={handleStripeSuccess}
-                    onCancel={() => setStep('select')}
-                  />
-                </Elements>
+              {method === 'stripe' ? (
+                <div className="space-y-6">
+                  <div className="p-4 bg-gold-500/10 border border-gold-500/20 rounded-sm text-center">
+                    <p className="text-[10px] font-black text-gold-500 uppercase tracking-widest leading-loose">
+                      SECURE_GATEWAY_ACTIVE. FOR_PAYMENT_QUERIES_CONTACT: +254723523247
+                    </p>
+                  </div>
+                  <Elements stripe={stripePromise}>
+                    <StripePaymentForm 
+                      amount={post.price || 49.99} 
+                      currency="USD" 
+                      onSuccess={handleStripeSuccess}
+                      onCancel={() => setStep('select')}
+                    />
+                  </Elements>
+                </div>
               ) : (
-                <>
-                  <div className="p-6 bg-white/5 border border-white/10 rounded-sm flex items-center justify-between mb-8">
-                    <div>
-                      <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">TOTAL_DUE</p>
-                      <p className="text-2xl font-black font-mono">${(post.price || 49.99).toFixed(2)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">METHOD</p>
-                      <p className="text-xs font-black uppercase tracking-widest">{method}</p>
-                    </div>
-                  </div>
-
-                  {method === 'mpesa' && (
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-black tracking-widest text-white/40 uppercase">PHONE_NUMBER (254...)</label>
-                      <input 
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="254712345678"
-                        className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-4 text-sm font-black focus:outline-none focus:border-white transition-all"
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={handlePayment}
-                      disabled={isProcessing}
-                      className="flex-1 glitter-button glitter-gold py-4 rounded-sm text-[10px] font-black tracking-widest uppercase flex items-center justify-center gap-2"
-                    >
-                      {isProcessing ? <Activity className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                      INITIALIZE_PAYMENT
-                    </button>
-                    <button 
-                      onClick={() => setStep('select')}
-                      className="flex-1 py-4 border border-white/10 rounded-sm text-[10px] font-black tracking-widest uppercase hover:bg-white/5 transition-all"
-                    >
-                      BACK
-                    </button>
-                  </div>
-                </>
+                <div className="p-10 text-center text-white/20 uppercase text-[10px] font-black tracking-widest">
+                  GATEWAY_ERROR: RE-INITIALIZING...
+                </div>
               )}
             </div>
           )}
@@ -6046,6 +5967,12 @@ const ProfilePage = ({ user, profile }: { user: FirebaseUser | null, profile: Us
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [userNotes, setUserNotes] = useState<any[]>([]);
   const [activeProfileTab, setActiveProfileTab] = useState<'info' | 'orders' | 'notes'>('info');
+
+  useLayoutEffect(() => {
+    if (activeProfileTab) {
+      window.scrollTo(0, 0);
+    }
+  }, [activeProfileTab]);
 
   useEffect(() => {
     if (!user) return;
@@ -6260,14 +6187,7 @@ const ProfilePage = ({ user, profile }: { user: FirebaseUser | null, profile: Us
                             order.status === 'pending_verification' ? 'text-yellow-500' : 'text-white/20'
                           }`}>{order.status}</p>
                         </div>
-                        {order.method === 'bank' && order.status === 'pending' && (
-                          <button
-                            onClick={() => handleReceiptUpload(order.id)}
-                            className="px-4 py-2 bg-white text-black text-[8px] font-black uppercase tracking-widest rounded-sm hover:bg-white/80 transition-all"
-                          >
-                            UPLOAD_RECEIPT
-                          </button>
-                        )}
+                        {/* Stripe/M-Pesa payments are automatic and don't need manual receipt upload */}
                         {order.receiptUrl && (
                           <a 
                             href={order.receiptUrl} 
@@ -6364,8 +6284,7 @@ const AdminPage = ({
   isGeneratingReport,
   profile,
   onGenerateReport,
-  onSavePaymentSettings,
-  onOpenCreateModal 
+  onSavePaymentSettings
 }: { 
   posts: Post[], 
   advice: AdminAdvice[], 
@@ -6387,11 +6306,16 @@ const AdminPage = ({
   isGeneratingReport: boolean,
   profile: UserProfile | null,
   onGenerateReport: () => void,
-  onSavePaymentSettings: (settings: any) => void,
-  onOpenCreateModal: () => void 
+  onSavePaymentSettings: (settings: any) => void
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("");
+
+  useLayoutEffect(() => {
+    if (activeTab) {
+      window.scrollTo(0, 0);
+    }
+  }, [activeTab]);
 
   const tabs = [
     { id: 'stats', label: 'SYSTEM_STATS', icon: Activity, role: ['admin'] },
@@ -6754,16 +6678,11 @@ const AdminPage = ({
 
   // Payment Config State
   const [paymentConfigStatus, setPaymentConfigStatus] = useState<{
-    mpesa: Record<string, boolean>,
-    stripe: Record<string, boolean>,
-    paypal: Record<string, boolean>
+    stripe: Record<string, boolean>
   } | null>(null);
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [editedPaymentSettings, setEditedPaymentSettings] = useState(paymentSettings || {
-    mpesa: { consumerKey: '', consumerSecret: '', shortcode: '', passkey: '' },
-    stripe: { secretKey: '', webhookSecret: '' },
-    paypal: { clientId: '', clientSecret: '' },
-    bank: { accountNumber: '', bankName: '', swiftCode: '', receiverName: '' }
+    stripe: { secretKey: '', webhookSecret: '' }
   });
 
   useEffect(() => {
@@ -7251,16 +7170,8 @@ const AdminPage = ({
           <p className="text-[8px] font-black tracking-widest text-white/40 uppercase">Authorization: Level 01</p>
         </div>
         <nav className="flex-1 py-8">
-          <div className="px-8 mb-8">
-            <button
-              onClick={onOpenCreateModal}
-              className="w-full glitter-button glitter-gold px-4 py-4 rounded-sm text-[10px] font-black tracking-widest uppercase flex items-center justify-center gap-3"
-            >
-              <Plus className="w-4 h-4" />
-              QUICK_ADD
-            </button>
-          </div>
-          {tabs.map(tab => (
+              {/* QUICK_ADD button removed */}
+              {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
@@ -7324,13 +7235,7 @@ const AdminPage = ({
               <p className="text-[10px] font-black tracking-widest text-white/40 uppercase">System Status: Optimal / AI Core: Active</p>
             </div>
             <div className="flex gap-4">
-              <button
-                onClick={onOpenCreateModal}
-                className="glitter-button glitter-gold px-8 py-4 rounded-sm text-[10px] font-black tracking-widest uppercase flex items-center gap-3"
-              >
-                <Plus className="w-4 h-4" />
-                ADD_NEW_CONTENT
-              </button>
+              {/* ADD_NEW_CONTENT button removed */}
               <button
                 onClick={handleStabilityCheck}
                 disabled={isCheckingStability}
@@ -7346,10 +7251,17 @@ const AdminPage = ({
 
           {/* Tab Content */}
           <div className="tech-grid min-h-[60vh]">
-            {activeTab === 'stats' && (
-        <div className="space-y-12">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <AnimatePresence mode="wait">
+              {activeTab === 'stats' && (
+                <motion.div
+                  key="stats"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-12"
+                >
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {[
               { label: 'TOTAL_REVENUE', value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, trend: '+12.5%', sub: 'NETWORK_EQUITY' },
               { label: 'AUDIENCE', value: allUsers.length.toString(), icon: Users, trend: '+5.2%', sub: 'GLOBAL_REACH' },
@@ -7538,12 +7450,27 @@ const AdminPage = ({
               </div>
             </section>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {activeTab === 'orders' && <OrdersTab />}
+      {activeTab === 'orders' && (
+        <motion.div
+          key="orders"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+        >
+          <OrdersTab />
+        </motion.div>
+      )}
       {activeTab === 'ai_studio' && (
-        <div className="space-y-8 max-w-4xl mx-auto">
+        <motion.div
+          key="ai_studio"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-8 max-w-4xl mx-auto"
+        >
           <div className="glitter-card p-10 rounded-sm border-white/20 bg-black/50">
             <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
               <div className="flex items-center gap-4">
@@ -7633,11 +7560,17 @@ const AdminPage = ({
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'ai_lab' && (
-        <div className="space-y-8 max-w-6xl mx-auto pb-20">
+        <motion.div
+          key="ai_lab"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-8 max-w-6xl mx-auto pb-20"
+        >
           <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
             <div>
               <h2 className="text-2xl font-black tracking-tighter uppercase italic">STRATEGIC_AI_LAB</h2>
@@ -7853,11 +7786,17 @@ const AdminPage = ({
                </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'accounting' && (
-        <div className="space-y-12">
+        <motion.div
+          key="accounting"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
           <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
             <div>
               <h2 className="text-xl font-black tracking-widest uppercase">AI_FINANCIAL_ACCOUNTING</h2>
@@ -7973,10 +7912,16 @@ const AdminPage = ({
               </div>
             </section>
           )}
-        </div>
+        </motion.div>
       )}
       {activeTab === 'payment_config' && (
-        <div className="space-y-12">
+        <motion.div
+          key="payment_config"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
           <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
             <div>
               <h2 className="text-xl font-black tracking-widest uppercase">PAYMENT_GATEWAY_CONFIGURATION</h2>
@@ -7986,46 +7931,6 @@ const AdminPage = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* M-Pesa Config */}
-            <div className="glitter-card p-8 rounded-sm border-white/10 relative">
-              <div className="absolute top-8 right-8">
-                {isLoadingConfig ? (
-                  <Activity className="w-4 h-4 animate-spin text-white/20" />
-                ) : (
-                  <div className={`flex items-center gap-2 text-[8px] font-black tracking-widest px-2 py-1 rounded-sm border ${
-                    paymentConfigStatus?.mpesa?.consumerKey ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
-                  }`}>
-                    {paymentConfigStatus?.mpesa?.consumerKey ? 'CONNECTED' : 'NOT_CONFIGURED'}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-3 mb-8">
-                <Smartphone className="w-5 h-5 text-white/40" />
-                <span className="text-[10px] font-black tracking-widest uppercase">M-PESA_DARAJA_CREDENTIALS</span>
-              </div>
-              <div className="space-y-6">
-                {[
-                  { key: 'consumerKey', label: 'CONSUMER_KEY' },
-                  { key: 'consumerSecret', label: 'CONSUMER_SECRET' },
-                  { key: 'shortcode', label: 'BUSINESS_SHORTCODE' },
-                  { key: 'passkey', label: 'LIPA_NA_MPESA_PASSKEY' }
-                ].map(field => (
-                  <div key={field.key} className="space-y-2">
-                    <label className="text-[8px] font-black tracking-widest text-white/40 uppercase">{field.label}</label>
-                    <input 
-                      type={field.key.includes('Secret') || field.key.includes('key') ? "password" : "text"}
-                      value={editedPaymentSettings.mpesa[field.key]}
-                      onChange={e => setEditedPaymentSettings({
-                        ...editedPaymentSettings,
-                        mpesa: { ...editedPaymentSettings.mpesa, [field.key]: e.target.value }
-                      })}
-                      className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs font-mono focus:outline-none focus:border-white/30"
-                      placeholder={`ENTER_${field.label}`}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Stripe Config */}
             <div className="glitter-card p-8 rounded-sm border-white/10 relative">
               <div className="absolute top-8 right-8">
@@ -8045,6 +7950,7 @@ const AdminPage = ({
               </div>
               <div className="space-y-6">
                 {[
+                  { key: 'publishableKey', label: 'STRIPE_PUBLISHABLE_KEY' },
                   { key: 'secretKey', label: 'STRIPE_SECRET_KEY' },
                   { key: 'webhookSecret', label: 'STRIPE_WEBHOOK_SECRET' }
                 ].map(field => (
@@ -8065,75 +7971,28 @@ const AdminPage = ({
               </div>
             </div>
 
-            {/* PayPal Config */}
-            <div className="glitter-card p-8 rounded-sm border-white/10 relative">
-              <div className="absolute top-8 right-8">
-                {isLoadingConfig ? (
-                  <Activity className="w-4 h-4 animate-spin text-white/20" />
-                ) : (
-                  <div className={`flex items-center gap-2 text-[8px] font-black tracking-widest px-2 py-1 rounded-sm border ${
-                    paymentConfigStatus?.paypal?.clientId ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
-                  }`}>
-                    {paymentConfigStatus?.paypal?.clientId ? 'CONNECTED' : 'NOT_CONFIGURED'}
-                  </div>
-                )}
-              </div>
+            {/* Checkout Links Config */}
+            <div className="glitter-card p-8 rounded-sm border-white/10 relative text-left">
               <div className="flex items-center gap-3 mb-8">
-                <Shield className="w-5 h-5 text-white/40" />
-                <span className="text-[10px] font-black tracking-widest uppercase">PAYPAL_CREDENTIALS</span>
+                <ExternalLink className="w-5 h-5 text-white/40" />
+                <span className="text-[10px] font-black tracking-widest uppercase">STRIPE_CHECKOUT_LINKS</span>
               </div>
               <div className="space-y-6">
                 {[
-                  { key: 'clientId', label: 'PAYPAL_CLIENT_ID' },
-                  { key: 'clientSecret', label: 'PAYPAL_CLIENT_SECRET' },
-                  { key: 'webhookId', label: 'PAYPAL_WEBHOOK_ID' }
+                  { key: 'bookPaymentLink', label: 'BOOK_ACQUISITION_LINK', placeholder: 'https://buy.stripe.com/...' },
+                  { key: 'generalContributionLink', label: 'GENERAL_CONTRIBUTION_LINK', placeholder: 'https://buy.stripe.com/...' },
                 ].map(field => (
                   <div key={field.key} className="space-y-2">
-                    <label className="text-[8px] font-black tracking-widest text-white/40 uppercase">{field.label}</label>
-                    <input 
-                      type="password"
-                      value={editedPaymentSettings.paypal?.[field.key] || ''}
-                      onChange={e => setEditedPaymentSettings({
-                        ...editedPaymentSettings,
-                        paypal: { ...(editedPaymentSettings.paypal || {}), [field.key]: e.target.value }
-                      })}
-                      className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs font-mono focus:outline-none focus:border-white/30"
-                      placeholder={`ENTER_${field.label}`}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Bank Transfer Config */}
-            <div className="glitter-card p-8 rounded-sm border-white/10 relative">
-              <div className="absolute top-8 right-8">
-                <div className="flex items-center gap-2 text-[8px] font-black tracking-widest px-2 py-1 rounded-sm border bg-white/5 border-white/10 text-white/40 uppercase">
-                  MANUAL_PROCESS
-                </div>
-              </div>
-              <div className="flex items-center gap-3 mb-8">
-                <Building2 className="w-5 h-5 text-white/40" />
-                <span className="text-[10px] font-black tracking-widest uppercase">BANK_TRANSFER_DETAILS</span>
-              </div>
-              <div className="space-y-6">
-                {[
-                  { key: 'receiverName', label: 'ACCOUNT_NAME' },
-                  { key: 'accountNumber', label: 'ACCOUNT_NUMBER' },
-                  { key: 'bankName', label: 'BANK_NAME' },
-                  { key: 'swiftCode', label: 'SWIFT_CODE' }
-                ].map(field => (
-                  <div key={field.key} className="space-y-2">
-                    <label className="text-[8px] font-black tracking-widest text-white/40 uppercase">{field.label}</label>
+                    <label className="text-[8px] font-black tracking-widest text-white/40 uppercase block">{field.label}</label>
                     <input 
                       type="text"
-                      value={editedPaymentSettings.bank?.[field.key] || ''}
+                      value={editedPaymentSettings.stripe?.[field.key] || ''}
                       onChange={e => setEditedPaymentSettings({
                         ...editedPaymentSettings,
-                        bank: { ...(editedPaymentSettings.bank || {}), [field.key]: e.target.value }
+                        stripe: { ...(editedPaymentSettings.stripe || {}), [field.key]: e.target.value }
                       })}
-                      className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs focus:outline-none focus:border-white/30 uppercase"
-                      placeholder={`ENTER_${field.label}`}
+                      className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-xs font-mono focus:outline-none focus:border-white/30 text-white"
+                      placeholder={field.placeholder}
                     />
                   </div>
                 ))}
@@ -8160,10 +8019,16 @@ const AdminPage = ({
               These credentials are encrypted and stored in the system database. They are only accessible by authorized administrators. Changes take effect immediately for all system transactions.
             </p>
           </div>
-        </div>
+        </motion.div>
       )}
       {activeTab === 'content_management' && (
-        <div className="space-y-8">
+        <motion.div
+          key="content_management"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-8"
+        >
           <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
             <div>
               <h2 className="text-xl font-black tracking-widest uppercase">CONTENT_REPOSITORY</h2>
@@ -8280,12 +8145,69 @@ const AdminPage = ({
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
-      {activeTab === 'feedback' && <FeedbackTab />}
+      {activeTab === 'feedback' && (
+        <motion.div
+          key="feedback"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+        >
+          <FeedbackTab />
+        </motion.div>
+      )}
 
       {activeTab === 'moderation' && (
-        <div className="space-y-12">
+        <motion.div
+          key="moderation"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
+          {/* Moderation History Modal */}
+          <AnimatePresence>
+            {selectedModerationPostId && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+              >
+                <div className="w-full max-w-2xl bg-[#050505] border border-white/10 rounded-sm overflow-hidden flex flex-col max-h-[80vh]">
+                  <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                    <h2 className="text-[10px] font-black tracking-widest uppercase">MODERATION_HISTORY_LOG</h2>
+                    <button onClick={() => setSelectedModerationPostId(null)} className="p-2 hover:bg-white/5 transition-all">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                    {posts.find(p => p.id === selectedModerationPostId)?.moderationHistory?.map((log, i) => (
+                      <div key={i} className="p-6 bg-white/5 border border-white/5 rounded-sm space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-sm ${log.status === 'approved' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                            {log.status}
+                          </span>
+                          <span className="text-[8px] font-mono text-white/20">{log.createdAt}</span>
+                        </div>
+                        <p className="text-[10px] font-mono text-white/60 leading-relaxed">{log.note}</p>
+                        {log.suggestions && (
+                          <div className="mt-4 pt-4 border-t border-white/5">
+                            <p className="text-[8px] font-black text-gold-500/60 uppercase mb-2 line-clamp-1">STRATEGIC_PREDICTION_V{i+1}</p>
+                            <p className="text-[9px] text-white/80 italic">"{log.suggestions}"</p>
+                          </div>
+                        )}
+                      </div>
+                    )) || (
+                      <div className="text-center py-20 text-[9px] font-black uppercase text-white/10">NO_PREVIOUS_LOGS_DETECTED</div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
             <div>
               <h2 className="text-xl font-black tracking-widest uppercase">MODERATION_COMMAND_CENTER</h2>
@@ -8459,14 +8381,38 @@ const AdminPage = ({
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {activeTab === 'orders' && <OrdersTab />}
-      {activeTab === 'feedback' && <FeedbackTab />}
+      {activeTab === 'orders' && (
+        <motion.div
+          key="orders"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+        >
+          <OrdersTab />
+        </motion.div>
+      )}
+      {activeTab === 'feedback' && (
+        <motion.div
+          key="feedback_alt"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+        >
+          <FeedbackTab />
+        </motion.div>
+      )}
 
       {activeTab === 'marketing' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <motion.div
+          key="marketing"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-12"
+        >
           <div className="space-y-8">
             <section className="glitter-card p-8 rounded-sm">
               <h2 className="text-xl font-black tracking-widest uppercase mb-8">GENERATE_MARKETING</h2>
@@ -8559,11 +8505,17 @@ const AdminPage = ({
               </div>
             </section>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'ai_metrics' && (
-        <div className="space-y-12">
+        <motion.div
+          key="ai_metrics"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
           <section className="glitter-card p-10 rounded-sm border-white/20">
             <div className="flex items-center gap-4 mb-10">
               <div className="w-12 h-12 bg-white/5 rounded-sm flex items-center justify-center">
@@ -8656,11 +8608,17 @@ const AdminPage = ({
               ))}
             </div>
           </section>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'users' && (
-        <div className="space-y-8">
+        <motion.div
+          key="users"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-8"
+        >
           <div className="glitter-card p-8 rounded-sm border-white/10 mb-12">
             <div className="flex items-center gap-4 mb-6">
               <Shield className="w-6 h-6 text-white" />
@@ -8769,11 +8727,17 @@ const AdminPage = ({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'community' && (
-        <div className="space-y-12">
+        <motion.div
+          key="community"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
               <h2 className="text-xl font-black tracking-widest uppercase mb-8 border-b border-white/10 pb-4">RECENT_INTERACTIONS</h2>
@@ -8837,11 +8801,17 @@ const AdminPage = ({
               </section>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'team' && (
-        <div className="space-y-12">
+        <motion.div
+          key="team"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
           <section className="glitter-card p-8 rounded-sm">
             <h2 className="text-xl font-black tracking-widest uppercase mb-8">ADD_TEAM_MEMBER</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -8969,11 +8939,17 @@ const AdminPage = ({
               )}
             </div>
           </section>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'messages' && (
-        <div className="space-y-8">
+        <motion.div
+          key="messages"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-8"
+        >
           <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
             <h2 className="text-xl font-black tracking-widest uppercase">INCOMING_MESSAGES</h2>
             <span className="bg-white text-black text-[10px] font-black px-3 py-1 rounded-sm uppercase">
@@ -9056,11 +9032,17 @@ const AdminPage = ({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'sites' && (
-        <div className="space-y-12">
+        <motion.div
+          key="sites"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
           <section className="glitter-card p-8 rounded-sm">
             <h2 className="text-xl font-black tracking-widest uppercase mb-8">ADD_NEW_WEBSITE</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -9232,11 +9214,17 @@ const AdminPage = ({
               )}
             </div>
           </section>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'ai_auto_reply' && (
-        <div className="space-y-12 max-w-4xl mx-auto">
+        <motion.div
+          key="ai_auto_reply"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12 max-w-4xl mx-auto"
+        >
           <div className="flex items-center justify-between border-b border-white/10 pb-6">
             <div>
               <h2 className="text-2xl font-black tracking-tighter uppercase italic">AI_AUTO_REPLY_CONTROL</h2>
@@ -9304,11 +9292,17 @@ const AdminPage = ({
                </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'ai_content_enhancer' && (
-        <div className="space-y-12 max-w-6xl mx-auto">
+        <motion.div
+          key="ai_content_enhancer"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12 max-w-6xl mx-auto"
+        >
           <div className="flex items-center justify-between border-b border-white/10 pb-6">
             <div>
               <h2 className="text-2xl font-black tracking-tighter uppercase italic">AI_CONTENT_ENHANCER</h2>
@@ -9369,11 +9363,17 @@ const AdminPage = ({
                </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'ai_marketing_suite' && (
-        <div className="space-y-12">
+        <motion.div
+          key="ai_marketing_suite"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
           <div className="flex items-center justify-between border-b border-white/10 pb-6">
             <div>
               <h2 className="text-2xl font-black tracking-tighter uppercase italic">AI_MARKETING_DOMINANCE_SUITE</h2>
@@ -9442,11 +9442,17 @@ const AdminPage = ({
                </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'ai_stability_monitor' && (
-        <div className="space-y-12">
+        <motion.div
+          key="ai_stability_monitor"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12"
+        >
           <div className="flex items-center justify-between border-b border-white/10 pb-6">
             <div>
               <h2 className="text-2xl font-black tracking-tighter uppercase italic">AI_STABILITY_MONITOR</h2>
@@ -9513,11 +9519,17 @@ const AdminPage = ({
                ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'ai_control' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <motion.div
+          key="ai_control"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-12"
+        >
           <div className="space-y-8">
             <section className="glitter-card p-10 rounded-sm border-white/20">
               <div className="flex items-center justify-between mb-10">
@@ -9745,11 +9757,17 @@ const AdminPage = ({
               </div>
             </section>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'strategic_insights' && (
-        <div className="space-y-12 max-w-5xl mx-auto">
+        <motion.div
+          key="strategic_insights"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="space-y-12 max-w-5xl mx-auto"
+        >
           <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
             <div>
               <h2 className="text-xl font-black tracking-widest uppercase">STRATEGIC_CONTENT_INSIGHTS</h2>
@@ -9815,11 +9833,17 @@ const AdminPage = ({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'events' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <motion.div
+          key="events"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-12"
+        >
           <div className="lg:col-span-4">
             <section className="glitter-card p-8 rounded-sm border-white/10 sticky top-24">
               <h2 className="text-xl font-black tracking-widest uppercase mb-8">ADD_NEW_EVENT</h2>
@@ -9929,11 +9953,17 @@ const AdminPage = ({
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'ai_accessories' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <motion.div
+          key="ai_accessories"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-12"
+        >
           <div className="space-y-8">
             <section className="glitter-card p-8 rounded-sm">
               <h2 className="text-xl font-black tracking-widest uppercase mb-8">AI_ACCESSORY_SUITE</h2>
@@ -10076,11 +10106,17 @@ const AdminPage = ({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {activeTab === 'settings' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        <motion.div
+          key="settings"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-12"
+        >
           <section className="glitter-card p-8 rounded-sm">
             <h2 className="text-xl font-black tracking-widest uppercase mb-8">COMMUNITY_CONTACT_INFO</h2>
             <div className="space-y-6">
@@ -10190,12 +10226,12 @@ const AdminPage = ({
               </button>
             </div>
           </section>
-        </div>
+        </motion.div>
       )}
-
+            </AnimatePresence>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
 
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
@@ -10238,6 +10274,14 @@ export default function App() {
 
   const [aiReports, setAiReports] = useState<any[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
+  const [stripePromise, setStripePromise] = useState<any>(() => initialStripePromise);
+
+  useEffect(() => {
+    const customKey = paymentSettings?.stripe?.publishableKey;
+    if (customKey) {
+      setStripePromise(loadStripe(customKey));
+    }
+  }, [paymentSettings?.stripe?.publishableKey]);
   const [financialReport, setFinancialReport] = useState<any>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -10265,6 +10309,7 @@ export default function App() {
     isAutoUpdateEnabled: true,
     isAutoMarketingEnabled: true,
     isAutoReplyEnabled: true,
+    isAutoModerationEnabled: true,
     autoReplyStrategy: 'strategic',
     aiHealth: 'OPTIMAL',
     lastHealAt: null,
@@ -10373,7 +10418,7 @@ export default function App() {
   const handleSavePaymentSettings = async (settings: any) => {
     try {
       await setDoc(doc(db, 'global_settings', 'payment_config'), {
-        ...settings,
+        stripe: settings.stripe,
         updatedAt: serverTimestamp()
       });
       notify("CREDENTIALS_RESERVED: Payment architecture has been synchronized.", "success");
@@ -10456,17 +10501,6 @@ export default function App() {
       unsubComments();
     };
   }, [aiSettings.isAIEnabled, aiSettings.isAutoReplyEnabled, profile, posts]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        e.preventDefault();
-        setIsPostModalOpen(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'global_settings', 'ai_config'), (snapshot) => {
@@ -10932,7 +10966,6 @@ export default function App() {
           user={user} 
           profile={profile} 
           onLogout={() => signOut(auth)} 
-          onOpenCreateModal={() => setIsPostModalOpen(true)} 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
@@ -10942,7 +10975,6 @@ export default function App() {
             user={user} 
             profile={profile} 
             onLogout={() => signOut(auth)} 
-            onOpenCreateModal={() => setIsPostModalOpen(true)} 
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
           />
@@ -10965,7 +10997,7 @@ export default function App() {
                 <Route path="/bookmarks" element={<BookmarksPage posts={posts} bookmarkedIds={bookmarkedIds} profile={profile} onComment={handleComment} onPurchase={setSelectedPostForPurchase} onBookmark={handleBookmark} onRead={handleRead} onLike={handleLike} likedIds={likedIds} aiSettings={aiSettings} notify={notify} onMarketing={setSelectedPostForMarketing} onSermonOutline={setSelectedPostForSermon} onTakeNote={openNoteModal} onEnhance={handleEnhancePost} />} />
                 <Route path="/notes" element={<SermonNotesPage notify={notify} />} />
                 <Route path="/events" element={<EventsPage />} />
-                <Route path="/support" element={<SupportPage user={user} />} />
+                <Route path="/support" element={<SupportPage user={user} paymentSettings={paymentSettings} stripePromise={stripePromise} />} />
                 <Route path="/contact" element={<ContactPage contactInfo={contactInfo} persona={aiSettings.persona} />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/terms" element={<TermsPage />} />
@@ -10999,7 +11031,6 @@ export default function App() {
                       profile={profile}
                       onGenerateReport={handleGenerateFinancialReport}
                       onSavePaymentSettings={handleSavePaymentSettings}
-                      onOpenCreateModal={() => setIsPostModalOpen(true)} 
                     />
                   ) : (
                     <div className="flex items-center justify-center h-[60vh] text-[10px] font-black tracking-widest uppercase text-white/20">
@@ -11011,7 +11042,7 @@ export default function App() {
             </Suspense>
           </main>
 
-          <QuickActions onTakeNote={() => setIsNoteModalOpen(true)} />
+          {/* QuickActions removed */}
           <Footer contactInfo={contactInfo} />
         </div>
 
@@ -11042,6 +11073,8 @@ export default function App() {
             user={user} 
             onClose={() => setSelectedPostForPurchase(null)} 
             notify={notify}
+            paymentSettings={paymentSettings}
+            stripePromise={stripePromise}
           />
         )}
       </AnimatePresence>
